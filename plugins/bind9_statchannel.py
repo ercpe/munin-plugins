@@ -27,14 +27,13 @@ class Bind9Statchannel(MuninPlugin):
 #xvda2_avgwait.min 0
 #xvda2_avgwait.draw LINE1
 
-	def execute(self):
+	def execute123(self):
 		tree = self.tree
 
 		for view in tree.xpath('/statistics/views/view'):
 			view_name = view.get('name')
 
 			print view_name
-
 
 			qtypes = []
 			for counter in view.xpath("counters[@type='resqtype']/counter"):
@@ -47,26 +46,66 @@ class Bind9Statchannel(MuninPlugin):
 				qstats.append((counter.get('name'), counter.text))
 			print sorted(qstats)
 
-		for socket in tree.xpath('/statistics/socketmgr/sockets/socket'):
-			attribs = [socket.xpath('id'), socket.xpath('name'),
-						socket.xpath('references'), socket.xpath('type'),
-						socket.xpath('local-address') ]
 
-			x = []
-			for foo in attribs:
-				if foo and len(foo):
-					x.append(foo[0].text)
-				else:
-					x.append("\t")
+		print "--- EoV ---"		
 
-			print "%s\t%s\t%s\t%s\t%s\t" % tuple(x)
+		if False:
+			for socket in tree.xpath('/statistics/socketmgr/sockets/socket'):
+				attribs = [socket.xpath('id'), socket.xpath('name'),
+							socket.xpath('references'), socket.xpath('type'),
+							socket.xpath('local-address') ]
+
+				x = []
+				for foo in attribs:
+					if foo and len(foo):
+						x.append(foo[0].text.strip())
+					else:
+						x.append("\t")
+				print "%s\t%s\t%s\t%s\t%s\t" % tuple(x)
+
+		print "opcode counter:"
+		for counter in tree.xpath("server/counters[@type='opcode']/counter"):
+			print counter, counter.get('name').strip(), counter.text.strip()
+
+		print "nsstat counter:"
+		for counter in tree.xpath("server/counters[@type='nsstat']/counter"):
+			print counter, counter.get('name').strip(), counter.text.strip()
+
+		print "sockstat counter:"
+		for counter in tree.xpath("server/counters[@type='sockstat']/counter"):
+			print counter, counter.get('name').strip(), counter.text.strip()
+
+	def execute(self):
+		self._read()
+		print self.views
+		import pprint
+		pprint.pprint(self.stats)
 
 	@property
 	def tree(self):
 		if not getattr(self, '_tree', None):
-			self._tree = etree.parse('/home/johann/Desktop/bind.xml')
-
+			self._tree = etree.parse('/home/johann/bind2.txt.xml')
 		return self._tree
+
+	def _read(self):
+
+		def _grab_values(xpath, parent=None):
+			return sorted([(counter.get('name'), long(counter.text)) for counter in (parent or self.tree).xpath(xpath)]),
+
+		self.views = {}
+		for view in self.tree.xpath('/statistics/views/view'):
+			self.views[view.get('name').strip()] = {
+				'query_types': _grab_values("counters[@type='resqtype']/counter", view), #sorted([(counter.get('name'), long(counter.text)) for counter in view.xpath("counters[@type='resqtype']/counter")]),
+				'result_stats': _grab_values("counters[@type='resstats']/counter", view) #sorted([(counter.get('name'), long(counter.text)) for counter in view.xpath("counters[@type='resstats']/counter")])
+			}
+
+		self.stats = {
+			'opcodes': _grab_values("/statistics/server/counters[@type='opcode']/counter"),
+			'query_types': _grab_values("/statistics/server/counters[@type='qtype']/counter"),
+			'nsstat': _grab_values("/statistics/server/counters[@type='nsstat']/counter"),
+			'zonestat': _grab_values("/statistics/server/counters[@type='zonestat']/counter"),
+			'sockstat': _grab_values("/statistics/server/counters[@type='sockstat']/counter"),
+		}
 
 
 
