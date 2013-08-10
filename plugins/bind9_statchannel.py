@@ -1,102 +1,88 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#%# family=auto
+#%# capabilities=autoconf
 
 from munin import MuninPlugin
 from lxml import etree
+from graphs import Multigraph, Graph
+import os
 
 class Bind9Statchannel(MuninPlugin):
+	mg_prefix = "bind9_statchannel_"
 
 	def config(self):
-		mgraph_prefix = "bind9_statchannel_"
-
-#multigraph diskstats_latency
-#graph_title Disk latency per device
-#graph_args --base 1000
-#graph_vlabel Average IO Wait (seconds)
-#graph_category disk
-#graph_width 400
-#
-#xvda1_avgwait.label xvda1
-#xvda1_avgwait.type GAUGE
-#xvda1_avgwait.info Average wait time for an I/O request
-#xvda1_avgwait.min 0
-#xvda1_avgwait.draw LINE1
-#xvda2_avgwait.label xvda2
-#xvda2_avgwait.type GAUGE
-#xvda2_avgwait.info Average wait time for an I/O request
-#xvda2_avgwait.min 0
-#xvda2_avgwait.draw LINE1
-
-	def execute123(self):
-		tree = self.tree
-
-		for view in tree.xpath('/statistics/views/view'):
-			view_name = view.get('name')
-
-			print view_name
-
-			qtypes = []
-			for counter in view.xpath("counters[@type='resqtype']/counter"):
-				qtypes.append((counter.get('name'), counter.text))
-			print sorted(qtypes)
-
-
-			qstats = []
-			for counter in view.xpath("counters[@type='resstats']/counter"):
-				qstats.append((counter.get('name'), counter.text))
-			print sorted(qstats)
-
-
-		print "--- EoV ---"		
-
-		if False:
-			for socket in tree.xpath('/statistics/socketmgr/sockets/socket'):
-				attribs = [socket.xpath('id'), socket.xpath('name'),
-							socket.xpath('references'), socket.xpath('type'),
-							socket.xpath('local-address') ]
-
-				x = []
-				for foo in attribs:
-					if foo and len(foo):
-						x.append(foo[0].text.strip())
-					else:
-						x.append("\t")
-				print "%s\t%s\t%s\t%s\t%s\t" % tuple(x)
-
-		print "opcode counter:"
-		for counter in tree.xpath("server/counters[@type='opcode']/counter"):
-			print counter, counter.get('name').strip(), counter.text.strip()
-
-		print "nsstat counter:"
-		for counter in tree.xpath("server/counters[@type='nsstat']/counter"):
-			print counter, counter.get('name').strip(), counter.text.strip()
-
-		print "sockstat counter:"
-		for counter in tree.xpath("server/counters[@type='sockstat']/counter"):
-			print counter, counter.get('name').strip(), counter.text.strip()
+		for g in self._create_graphs():
+			print g.get_config()
 
 	def execute(self):
+		for g in self._create_graphs():
+			print g.get_values()
+
+	def _create_graphs(self):
 		self._read()
-		print self.views
-		import pprint
-		pprint.pprint(self.stats)
+
+		# combined graph for the host overview - contains the aggregated values for all views
+		query_types_graph = Multigraph("%sqtypes" % self.mg_prefix, 'Query types', category="bind9")
+		qtypes = {}
+
+		# sum up all query types and counts over all views
+		for view_name, view_stats in self.views.iteritems():
+			# create a subgraph definition for this view
+			vg = Graph("Query types for view '%s'" % view_name, category='bind9')
+
+			for qtype, count in view_stats['query_types']:
+				# sum up the totals for the overview graph
+				qtypes[qtype] = qtypes.get(type, 0) + count
+
+				# add a row + data to the graph for the current view
+				vg.add_row('qtype_%s' % qtype, qtype, type='COUNTER', draw='AREASTACK')
+				vg.add_data('qtype_%s' % qtype, count)
+
+			query_types_graph.add_subgraph("%sqtypes.%s" % (self.mg_prefix, view_name), vg)
+
+
+		# finish the graph definition for the overview graph
+		for qtype, total_count in qtypes.iteritems():
+			query_types_graph.add_row('qtype_%s' % qtype, qtype, type='COUNTER', draw='AREASTACK')
+			query_types_graph.add_data('qtype_%s' % qtype, total_count)
+
+		yield query_types_graph
+
+
+		# opcode graph
+		opcode_graph = Multigraph("%sopcodes" % self.mg_prefix, 'OPCodes', category='bind9')
+		i = 0
+		for opcode, count in self.stats['opcodes']:
+			opcode_graph.add_row('opcode_%s' % opcode, opcode, type='COUNTER')
+			opcode_graph.add_data('opcode_%s' % opcode, count)
+			i += 1
+
+		yield opcode_graph
+
 
 	@property
 	def tree(self):
 		if not getattr(self, '_tree', None):
-			self._tree = etree.parse('/home/johann/bind2.txt.xml')
+			self._tree = etree.parse('/home/johann/Desktop/bind-auto.xml')
 		return self._tree
 
 	def _read(self):
-
 		def _grab_values(xpath, parent=None):
-			return sorted([(counter.get('name'), long(counter.text)) for counter in (parent or self.tree).xpath(xpath)]),
+			return sorted([
+						(counter.get('name'), long(counter.text))
+							for counter in (parent if parent is not None else self.tree).xpath(xpath)
+					])
 
 		self.views = {}
 		for view in self.tree.xpath('/statistics/views/view'):
-			self.views[view.get('name').strip()] = {
-				'query_types': _grab_values("counters[@type='resqtype']/counter", view), #sorted([(counter.get('name'), long(counter.text)) for counter in view.xpath("counters[@type='resqtype']/counter")]),
-				'result_stats': _grab_values("counters[@type='resstats']/counter", view) #sorted([(counter.get('name'), long(counter.text)) for counter in view.xpath("counters[@type='resstats']/counter")])
+			view_name = view.get('name').strip()
+			if view_name == "_bind":
+				continue # no usable infos here?
+
+			self.views[view_name] = {
+				'query_types': _grab_values("counters[@type='resqtype']/counter", view),
+				'result_stats': _grab_values("counters[@type='resstats']/counter", view)
 			}
 
 		self.stats = {
@@ -110,4 +96,10 @@ class Bind9Statchannel(MuninPlugin):
 
 
 if __name__ == "__main__":
+	if os.environ.get('FOOBAR', None):
+		x = Bind9Statchannel()
+		x._read()
+		import pprint
+		pprint.pprint(x.views)
 	Bind9Statchannel().run()
+
