@@ -6,6 +6,8 @@
 from munin import MuninPlugin
 from lxml import etree
 from graphs import Multigraph, Graph
+import os
+import urllib
 
 class Bind9Statchannel(MuninPlugin):
 	mg_prefix = "bind9_statchannel_"
@@ -18,63 +20,16 @@ class Bind9Statchannel(MuninPlugin):
 		for g in self._create_graphs():
 			print g.get_values()
 
-	def _create_graphs(self):
-		#self._read()
+	def _sum_dicts(self, dicts):
+		d = {}
 
-#		# combined graph for the host overview - contains the aggregated values for all views
-#		query_types_graph = Multigraph("%sqtypes" % self.mg_prefix, 'Query types', category="bind9")
-#		qtypes = {}
-#
-#		# sum up all query types and counts over all views
-#		for view_name, view_stats in self.views.iteritems():
-#			# create a subgraph definition for this view
-#			vg = Graph("Query types for view '%s'" % view_name, category='bind9')
-#
-#			for qtype, count in view_stats['query_types']:
-#				# sum up the totals for the overview graph
-#				qtypes[qtype] = qtypes.get(type, 0) + count
-#
-#				# add a row + data to the graph for the current view
-#				vg.add_row('qtype_%s' % qtype, qtype, type='COUNTER', draw='AREASTACK')
-#				vg.add_data('qtype_%s' % qtype, count)
-#
-#			query_types_graph.add_subgraph("%sqtypes.%s" % (self.mg_prefix, view_name), vg)
-#
-#
-#		# finish the graph definition for the overview graph
-#		for qtype, total_count in qtypes.iteritems():
-#			query_types_graph.add_row('qtype_%s' % qtype, qtype, type='COUNTER', draw='AREASTACK')
-#			query_types_graph.add_data('qtype_%s' % qtype, total_count)
-#
-#		yield query_types_graph
-#
-#
-#		result_graph = Multigraph("%srstats" % self.mg_prefix, 'Result stats', category="bind9")
-#		rstats = {}
-#		# sum up all result types and counts over all views
-#		for view_name, view_stats in self.views.iteritems():
-#			# create a subgraph definition for this view
-#			vg = Graph("Result stats for view '%s'" % view_name, category='bind9')
-#
-#			for atype, count in view_stats['result_stats']:
-#				# sum up the totals for the overview graph
-#				rstats[atype] = rstats.get(type, 0) + count
-#
-#				# add a row + data to the graph for the current view
-#				vg.add_row('rstat_%s' % atype, atype, type='COUNTER', draw='AREASTACK')
-#				vg.add_data('rstat_%s' % atype, count)
-#
-#			result_graph.add_subgraph("%srstats.%s" % (self.mg_prefix, view_name), vg)
-#
-#
-#		# finish the graph definition for the overview graph
-#		for atype, total_count in rstats.iteritems():
-#			result_graph.add_row('rstat_%s' % atype, atype, type='COUNTER', draw='AREASTACK')
-#			result_graph.add_data('rstat_%s' % atype, total_count)
-#
-#		yield result_graph
-#
-#
+		for x in dicts:
+			for k, v in x.iteritems():
+				d[k] = d.get(k, 0) + v
+
+		return d
+
+	def _create_graphs(self):
 		# opcode graph
 		opcode_graph = Multigraph("%sopcodes" % self.mg_prefix, 'OPCodes', category='bind9')
 		for opcode, count in self.opcodes.iteritems():
@@ -108,48 +63,67 @@ class Bind9Statchannel(MuninPlugin):
 							args='-l 0', vlabel="Queries / second")
 		resstat_graph = Multigraph("%sresstat" % self.mg_prefix, 'Resolver statistics', category='bind9',
 							args='-l 0', vlabel="Queries / second")
-
-		resq_totals = {}
-		resstat_totals = {}
+		cachedb_graph = Multigraph("%scachedb" % self.mg_prefix, 'CacheDB', category='bind9',
+							args='-l 0', vlabel="Count")
 
 		# sum the totals over all views for the overview graph
-		for view_name, stats in self.views:
-			for k, v in stats['resqtype'].iteritems():
-				resq_totals[k] = resq_totals.get(k, 0) + v
-			for k, v in stats['resstats'].iteritems():
-				resstat_totals[k] = resstat_totals.get(k, 0) + v
+		resq_totals = self._sum_dicts([x[1]['resqtype'] for x in self.views])
+		resstat_totals = self._sum_dicts([x[1]['resstats'] for x in self.views])
+		cachedb_totals = self._sum_dicts([x[1]['cachedb'] for x in self.views])
 
 		# finish overview graphs
 		for k, v in sorted(resq_totals.iteritems()):
-			resq_graph.add_row(k, k, type='DERIVE', draw='AREASTACK', min=0)
+			resq_graph.add_row(k, k, type='COUNTER', draw='AREASTACK', min=0)
 			resq_graph.add_data(k, v)
 
 		for k, v in sorted(resstat_totals.iteritems()):
-			resstat_graph.add_row(k, k, type='DERIVE', draw='AREASTACK', min=0)
+			resstat_graph.add_row(k, k, type='COUNTER', draw='AREASTACK', min=0)
 			resstat_graph.add_data(k, v)
+
+		for k, v in sorted(cachedb_totals.iteritems()):
+			cachedb_graph.add_row(k, k, type='COUNTER', draw='AREASTACK', min=0)
+			cachedb_graph.add_data(k, v)
 
 		for view_name, stats in self.views:
 			q_graph = Graph("Queries for view '%s'" % view_name, category='bind9', args='-l 0')
 			for k, v in sorted(stats['resqtype'].iteritems()):
-				q_graph.add_row(k, k, type='DERIVE', draw='AREASTACK')
+				q_graph.add_row(k, k, type='COUNTER', draw='AREASTACK')
 				q_graph.add_data(k, v)
+			resq_graph.add_subgraph("%sresqtypes.%s" % (self.mg_prefix, view_name), q_graph)
 
 			r_graph = Graph("Resolver statistics for view '%s'" % view_name, category='bind9', args='-l 0')
 			for k, v in sorted(stats['resstats'].iteritems()):
-				r_graph.add_row(k, k, type='DERIVE', draw='AREASTACK')
+				r_graph.add_row(k, k, type='COUNTER', draw='AREASTACK')
 				r_graph.add_data(k, v)
-
-			resq_graph.add_subgraph("%sresqtypes.%s" % (self.mg_prefix, view_name), q_graph)
 			resq_graph.add_subgraph("%sresstat.%s" % (self.mg_prefix, view_name), r_graph)
+
+			cdb_graph = Graph("Cache DB for view '%s'" % view_name, category='bind9', args='-l 0')
+			for k, v in sorted(stats['cachedb'].iteritems()):
+				cdb_graph.add_row(k, k, type='COUNTER', draw='AREASTACK')
+				cdb_graph.add_data(k, v)
+			cachedb_graph.add_subgraph("%scachedb.%s" % (self.mg_prefix, view_name), cdb_graph)
 
 		yield resq_graph
 		yield resstat_graph
+		yield cachedb_graph
+
+		# memory graph with total and inuse values
+		mem_graph = Multigraph("%smemory" % self.mg_prefix, 'Memory usage', category='bind9',
+							args="-l 0 --base 1024", vlabel="Memory in use")
+		for k, v in self.memory:
+			mem_graph.add_row(k, k, draw='LINE1' if k == "TotalUse" else 'AREASTACK')
+			mem_graph.add_data(k, v)
+		yield mem_graph
 
 
 	@property
 	def tree(self):
 		if not getattr(self, '_tree', None):
-			self._tree = etree.parse('/home/johann/Desktop/bind-auto.xml')
+			if os.environ.get('debug_file'):
+				self._tree = etree.parse(os.environ.get('debug_file'))
+			else:
+				r = urllib.urlopen(os.environ.get('url', 'http://localhost:8053'))
+				self._tree = etree.parse(r)
 		return self._tree
 
 	@property
@@ -167,6 +141,10 @@ class Bind9Statchannel(MuninPlugin):
 				)
 
 	@property
+	def memory(self):
+		return [(x.tag, long(x.text)) for x in self.tree.xpath('/statistics/memory/summary/*')]
+
+	@property
 	def opcodes(self):
 		return self._get_counters("/statistics/server/counters[@type='opcode']/counter")
 
@@ -182,7 +160,8 @@ class Bind9Statchannel(MuninPlugin):
 				self._views.append((view_name, {
 							'resqtype': self._get_counters("counters[@type='resqtype']/counter", None, view),
 							'resstats': self._get_counters("counters[@type='resstats']/counter", None, view),
-							#'cache': self._get_counters("counters[@type='resstats']/counter", None, view),
+							'cachedb': dict([(x.xpath('name')[0].text, long(x.xpath('counter')[0].text))
+											for x in view.xpath("cache/rrset")]),
 						}))
 		return self._views
 
@@ -194,35 +173,6 @@ class Bind9Statchannel(MuninPlugin):
 		l = filter(lambda item: not items or item[0] in items, counters)
 
 		return dict(l)
-
-	def _read(self):
-		pass
-#		def _grab_values(xpath, parent=None):
-#			return sorted([
-#						(counter.get('name'), long(counter.text))
-#							for counter in (parent if parent is not None else self.tree).xpath(xpath)
-#					])
-
-#		self.views = {}
-#		for view in self.tree.xpath('/statistics/views/view'):
-#			view_name = view.get('name').strip()
-#			#if view_name == "_bind":
-#			#	continue # no usable infos here?
-#
-#			self.views[view_name] = {
-#				'query_types': _grab_values("counters[@type='resqtype']/counter", view),
-#				'result_stats': _grab_values("counters[@type='resstats']/counter", view)
-#			}
-#
-#		self.stats = {
-#			'opcodes': _grab_values("/statistics/server/counters[@type='opcode']/counter"),
-#			'query_types': _grab_values("/statistics/server/counters[@type='qtype']/counter"),
-#			'nsstat': _grab_values("/statistics/server/counters[@type='nsstat']/counter"),
-#			'zonestat': _grab_values("/statistics/server/counters[@type='zonestat']/counter"),
-#			'sockstat': _grab_values("/statistics/server/counters[@type='sockstat']/counter"),
-#		}
-
-
 
 if __name__ == "__main__":
 	Bind9Statchannel().run()
