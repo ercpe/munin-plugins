@@ -7,7 +7,7 @@ from munin import MuninPlugin
 from lxml import etree
 from graphs import Multigraph, Graph
 import os
-import urllib
+import urllib2
 
 class Bind9Statchannel(MuninPlugin):
 	mg_prefix = "bind9_statchannel_"
@@ -73,33 +73,33 @@ class Bind9Statchannel(MuninPlugin):
 
 		# finish overview graphs
 		for k, v in sorted(resq_totals.iteritems()):
-			resq_graph.add_row(k, k, type='COUNTER', draw='AREASTACK', min=0)
+			resq_graph.add_row(k, k, type='DERIVE', draw='AREASTACK', min=0)
 			resq_graph.add_data(k, v)
 
 		for k, v in sorted(resstat_totals.iteritems()):
-			resstat_graph.add_row(k, k, type='COUNTER', draw='AREASTACK', min=0)
+			resstat_graph.add_row(k, k, type='DERIVE', draw='AREASTACK', min=0)
 			resstat_graph.add_data(k, v)
 
 		for k, v in sorted(cachedb_totals.iteritems()):
-			cachedb_graph.add_row(k, k, type='COUNTER', draw='AREASTACK', min=0)
+			cachedb_graph.add_row(k, k, type='DERIVE', draw='AREASTACK', min=0)
 			cachedb_graph.add_data(k, v)
 
 		for view_name, stats in self.views:
 			q_graph = Graph("Queries for view '%s'" % view_name, category='bind9', args='-l 0')
 			for k, v in sorted(stats['resqtype'].iteritems()):
-				q_graph.add_row(k, k, type='COUNTER', draw='AREASTACK')
+				q_graph.add_row(k, k, type='DERIVE', draw='AREASTACK')
 				q_graph.add_data(k, v)
 			resq_graph.add_subgraph("%sresqtypes.%s" % (self.mg_prefix, view_name), q_graph)
 
 			r_graph = Graph("Resolver statistics for view '%s'" % view_name, category='bind9', args='-l 0')
 			for k, v in sorted(stats['resstats'].iteritems()):
-				r_graph.add_row(k, k, type='COUNTER', draw='AREASTACK')
+				r_graph.add_row(k, k, type='DERIVE', draw='AREASTACK')
 				r_graph.add_data(k, v)
 			resq_graph.add_subgraph("%sresstat.%s" % (self.mg_prefix, view_name), r_graph)
 
 			cdb_graph = Graph("Cache DB for view '%s'" % view_name, category='bind9', args='-l 0')
 			for k, v in sorted(stats['cachedb'].iteritems()):
-				cdb_graph.add_row(k, k, type='COUNTER', draw='AREASTACK')
+				cdb_graph.add_row(k, k, type='DERIVE', draw='AREASTACK')
 				cdb_graph.add_data(k, v)
 			cachedb_graph.add_subgraph("%scachedb.%s" % (self.mg_prefix, view_name), cdb_graph)
 
@@ -122,7 +122,7 @@ class Bind9Statchannel(MuninPlugin):
 			if os.environ.get('debug_file'):
 				self._tree = etree.parse(os.environ.get('debug_file'))
 			else:
-				r = urllib.urlopen(os.environ.get('url', 'http://localhost:8053'))
+				r = urllib2.urlopen(os.environ.get('url', 'http://localhost:8053'))
 				self._tree = etree.parse(r)
 		return self._tree
 
