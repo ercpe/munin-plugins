@@ -17,6 +17,7 @@ class Graph(object):
 		d['type'] = type
 		d['draw'] = draw
 		self.rows[name] = d
+		return self
 
 	def add_data(self, name, value):
 		if not name in self.rows:
