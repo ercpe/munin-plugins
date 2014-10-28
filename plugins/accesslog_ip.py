@@ -31,7 +31,7 @@ class IPDistribution(MuninPlugin):
 		tempfd, access_log_file = tempfile.mkstemp(text=True)
 
 		try:
-			state_file = os.path.join('/var/lib/munin/plugin-state/',  __file__.replace('.py', ''))
+			state_file = os.path.join('/var/lib/munin/plugin-state/',  os.path.basename(__file__).replace('.py', ''))
 			os.system("logtail %s %s > %s" % (raw_file, os.environ.get('state_file', state_file), access_log_file))
 		
 			with open(access_log_file, 'r') as f:
