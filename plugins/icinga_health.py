@@ -12,6 +12,7 @@ import urllib2
 
 class IcincaHealth(MuninPlugin):
 	title = "Icinga health"
+	args = '-l 0'
 
 	@property
 	def fields(self):
