@@ -10,7 +10,7 @@ A set of extra munin plugins
 The only required configuration option is the `url` parameter:
 
     [icinga*]
-    env.url http://your.server/icinga/cgi-bin/tac.cgi
+    env.tac_url http://your.server/icinga/cgi-bin/tac.cgi
 
 If your server requires basic authentication, you should use the `user` and `password` setting:
 
