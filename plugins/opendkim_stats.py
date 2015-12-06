@@ -9,7 +9,7 @@ from munin import MuninPlugin
 class OpenDKIMStats(MuninPlugin):
 	title = "DKIM signatures"
 	category = 'mail'
-	vlabel = 'Connections in tracking table'
+	vlabel = 'Messages'
 
 	@property
 	def fields(self):
