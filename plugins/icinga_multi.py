@@ -17,7 +17,7 @@ class IcincaMulti(MuninPlugin):
 	@property
 	def graph_defs(self):
 		return {
-			'health': Multigraph('icinga_health', 'Icinga health', category='Icinga') \
+			'health': Multigraph('icinga_health', 'Icinga health', category='Icinga', args='-l 0') \
 						.add_row('service_health', 'Service health', 'GAUGE', min=0.0, max=100.0) \
 						.add_row('host_health', 'Host health', 'GAUGE', min=0.0, max=100.0),
 			'host_exec_time': Multigraph('icinga_host_execution_time', 'Icinga host check execution time', category='Icinga') \
