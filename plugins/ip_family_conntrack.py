@@ -13,14 +13,62 @@ class IPFamilyConntrack(MuninPlugin):
 	@property
 	def fields(self):
 		return [
-			('ipv4_tcp', { 'label': 'IPv4 / TCP', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv4_udp', { 'label': 'IPv4 / UDP', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv4_icmp', { 'label': 'IPv4 / ICMP', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv4_other', { 'label': 'IPv4 / Other', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv6_tcp', { 'label': 'IPv6 / TCP', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv6_udp', { 'label': 'IPv6 / UDP', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv6_icmpv6', { 'label': 'IPv6 / ICMP', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
-			('ipv6_other', { 'label': 'IPv6 / Other', 'min': 0, 'type': 'GAUGE', 'draw': 'AREASTACK' }),
+			('ipv4_tcp', {
+				'label': 'IPv4 / TCP',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Number of TCP connections over IPv4',
+			}),
+			('ipv4_udp', {
+				'label': 'IPv4 / UDP',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Number of UDP connections over IPv4',
+			}),
+			('ipv4_icmp', {
+				'label': 'IPv4 / ICMP',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Number of ICMP connections over IPv4',
+			}),
+			('ipv4_other', {
+				'label': 'IPv4 / Other',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Other connections over IPv4',
+			}),
+			('ipv6_tcp', {
+				'label': 'IPv6 / TCP',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Number of TCP connections over IPv6',
+			}),
+			('ipv6_icmpv6', {
+				'label': 'IPv6 / UDP',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Number of UDP connections over IPv6',
+			}),
+			('ipv6_icmp', {
+				'label': 'IPv6 / ICMPv6',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Number of ICMPv6 connections over IPv6',
+			}),
+			('ipv6_other', {
+				'label': 'IPv6 / Other',
+				'min': 0,
+				'type': 'GAUGE',
+				'draw': 'AREASTACK',
+				'info': 'Other connections over IPv6',
+			}),
 		]
 
 	def autoconf(self):
