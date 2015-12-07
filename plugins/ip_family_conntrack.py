@@ -48,14 +48,14 @@ class IPFamilyConntrack(MuninPlugin):
 				'draw': 'AREASTACK',
 				'info': 'Number of TCP connections over IPv6',
 			}),
-			('ipv6_icmpv6', {
+			('ipv6_udp', {
 				'label': 'IPv6 / UDP',
 				'min': 0,
 				'type': 'GAUGE',
 				'draw': 'AREASTACK',
 				'info': 'Number of UDP connections over IPv6',
 			}),
-			('ipv6_icmp', {
+			('ipv6_icmpv6', {
 				'label': 'IPv6 / ICMPv6',
 				'min': 0,
 				'type': 'GAUGE',
