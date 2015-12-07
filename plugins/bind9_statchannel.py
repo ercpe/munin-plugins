@@ -111,7 +111,10 @@ class Bind9Statchannel(MuninPlugin):
 		mem_graph = Multigraph("%smemory" % self.mg_prefix, 'Memory usage', category='bind9',
 							args="-l 0 --base 1024", vlabel="Memory in use")
 		for k, v in self.memory:
-			mem_graph.add_row(k, k, draw='LINE1' if k == "TotalUse" else 'AREASTACK')
+			if k == "TotalUse":
+				mem_graph.add_row(k, k, draw='LINE1', type='DERIVE', min=0)
+			else:
+				mem_graph.add_row(k, k, draw='AREASTACK')
 			mem_graph.add_data(k, v)
 		yield mem_graph
 
