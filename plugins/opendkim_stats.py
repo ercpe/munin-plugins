@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
 import os
 
-from munin import MuninPlugin
+from utils import MemorableMuninPlugin
 
-class OpenDKIMStats(MuninPlugin):
+
+class OpenDKIMStats(MemorableMuninPlugin):
 	title = "DKIM signatures"
 	category = 'mail'
 	vlabel = 'Messages'
@@ -17,19 +17,19 @@ class OpenDKIMStats(MuninPlugin):
 			('messages', {
 				'label': 'Messages',
 				'min': 0,
-				'type': 'COUNTER',
+				'type': 'GAUGE',
 				'draw': 'LINE'
 			}),
 			('signatures_passed', {
 				'label': 'Signatures passed',
 				'min': 0,
-				'type': 'COUNTER',
+				'type': 'GAUGE',
 				'draw': 'LINE'
 			}),
 			('signatures_failed', {
 				'label': 'Signatures failed',
 				'min': 0,
-				'type': 'COUNTER',
+				'type': 'GAUGE',
 				'draw': 'LINE'
 			}),
 		]
@@ -44,6 +44,7 @@ class OpenDKIMStats(MuninPlugin):
 		messages = 0
 		sig_passed = 0
 		sig_failed = 0
+		old_messages, old_sig_passed, old_sig_failed = tuple(self.load_state((0, 0, 0)))
 
 		with open(stats_file, 'r') as f:
 			for line in (x.strip() for x in f.readlines()):
@@ -64,10 +65,20 @@ class OpenDKIMStats(MuninPlugin):
 				except Exception as ex:
 					print(ex)
 
-		print("messages.value %s" % messages)
-		print("signatures_passed.value %s" % sig_passed)
-		print("signatures_failed.value %s" % sig_failed)
+		if old_messages == old_sig_passed == old_sig_failed == 0:
+			# avoid big spike when state file is missing
+			new_messages = 0
+			new_sig_passed = 0
+			new_sig_failed = 0
+		else:
+			new_messages = messages - old_messages
+			new_sig_passed = sig_passed - old_sig_passed
+			new_sig_failed = sig_failed - old_sig_failed
 
+		print("messages.value %s" % new_messages)
+		print("signatures_passed.value %s" % new_sig_passed)
+		print("signatures_failed.value %s" % new_sig_failed)
+		self.save_state((messages, sig_passed, sig_failed))
 
 if __name__ == "__main__":
 	OpenDKIMStats().run()
