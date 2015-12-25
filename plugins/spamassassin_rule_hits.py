@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import shlex
+import tempfile
 
 from collections import OrderedDict
 
@@ -19,19 +20,20 @@ class SpamassassinRuleHitsPlugin(MuninPlugin):
 	@property
 	def fields(self):
 		def _inner():
-			for k in self.get_data().keys():
+			t = tempfile.mktemp()
+			for k in self.get_data(t).keys():
 				yield (k, {
 					'label': k,
 					'min': 0,
 					'type': 'GAUGE',
 					'info': 'Number of hits of rule %s' % k,
 				})
+			os.remove(t)
 		return list(_inner())
 
-	def get_data(self):
+	def get_data(self, state_file):
 		logfile = os.environ.get('logfile', '/var/log/mail.log')
 		logtail = os.environ.get('logtail', '/usr/bin/logtail')
-		state_file = os.environ.get('state_file', '/var/lib/munin/plugin-state/%s.offset' % os.path.basename(__file__))
 
 		logtail_cmd = "%s %s %s" % (logtail, logfile, state_file)
 
@@ -58,7 +60,8 @@ class SpamassassinRuleHitsPlugin(MuninPlugin):
 		return OrderedDict(sorted(d.items(), key=lambda t: t[0]))
 
 	def execute(self):
-		for k, v in self.get_data().items():
+		state_file = os.environ.get('state_file', '/var/lib/munin/plugin-state/%s.offset' % os.path.basename(__file__))
+		for k, v in self.get_data(state_file).items():
 			print("%s.value %s" % (k, v))
 
 
