@@ -5,7 +5,6 @@ import re
 import subprocess
 import shlex
 
-#tests_re = re.compile(r"tests_m=\[(?:([\w\d_]+)=\-?([\d\.]+))*,?\]", flags=re.IGNORECASE)
 from collections import OrderedDict
 
 from munin import MuninPlugin
@@ -32,7 +31,7 @@ class SpamassassinRuleHitsPlugin(MuninPlugin):
 	def get_data(self):
 		logfile = os.environ.get('logfile', '/var/log/mail.log')
 		logtail = os.environ.get('logtail', '/usr/bin/logtail')
-		state_file = os.environ.get('state_file', '/var/lib/munin/plugin-state/%s.offset' % __file__)
+		state_file = os.environ.get('state_file', '/var/lib/munin/plugin-state/%s.offset' % os.path.basename(__file__))
 
 		logtail_cmd = "%s %s %s" % (logtail, logfile, state_file)
 
