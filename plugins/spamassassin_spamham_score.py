@@ -9,7 +9,7 @@ from munin import MuninPlugin
 spam_result_re = re.compile("(No|Yes), score=(-?\d+(?:\.\d+)?) tagged_above=(-?\d+(?:\.\d+)?) required=(-?\d+(?:\.\d+)?)")
 
 class SpamassassinSpamHamScorePlugin(MuninPlugin):
-	title = "Spamassassin Spam/ham score"
+	title = "Spamassassin Spam/Ham score"
 	category = 'mail'
 	vlabel = 'Score'
 
