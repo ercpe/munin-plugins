@@ -30,15 +30,8 @@ class SpamassassinSpamHamScorePlugin(MuninPlugin):
 
 	def execute(self):
 		logfile = os.environ.get('logfile', '/var/log/mail.log')
-		logtail = os.environ.get('logtail', '/usr/bin/logtail')
-		state_file = os.environ.get('state_file', '/var/lib/munin/plugin-state/%s.offset' % os.path.basename(__file__))
 
-		logtail_cmd = "%s %s %s" % (logtail, logfile, state_file)
-
-		logtail_proc = subprocess.Popen(shlex.split(logtail_cmd), stdout=subprocess.PIPE)
-		grep_proc = subprocess.Popen(shlex.split("grep 'spam-tag, '"), stdin=logtail_proc.stdout, stdout=subprocess.PIPE)
-		logtail_proc.stdout.close()
-
+		grep_proc = subprocess.Popen(shlex.split("grep 'spam-tag, ' %s" % logfile), stdout=subprocess.PIPE)
 		stdout, _ = grep_proc.communicate()
 
 		spam_scores = []
