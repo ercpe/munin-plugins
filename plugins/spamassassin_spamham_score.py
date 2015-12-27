@@ -12,6 +12,7 @@ class SpamassassinSpamHamScorePlugin(MuninPlugin):
 	title = "Spamassassin Spam/Ham score"
 	category = 'mail'
 	vlabel = 'Score'
+	scale = 'no'
 
 	@property
 	def fields(self):
