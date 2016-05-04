@@ -124,14 +124,13 @@ if debug:
 	logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(message)s')
 
 if "snmpconf" in sys.argv[1:]:
-	print("require 1.3.6.1.4.1.6574.2.1.1")
+	print("require 1.3.6.1.4.1.12325.1.200.1.2.1.0")
 	sys.exit(0)
 else:
 	if not (host and port and community):
 		print("# Bad configuration. Cannot run with Host=%s, port=%s and community=%s" % (host, port, community))
 		sys.exit(1)
 
-	logging.debug("Host=%s, port=%s, community=%s", host, port, community)
 	c = SNMPClient(host, port, community)
 
 	if "config" in sys.argv[1:]:
