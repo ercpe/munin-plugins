@@ -52,6 +52,7 @@ import sys
 import os
 import logging
 
+import re
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 
@@ -63,7 +64,8 @@ class SNMPClient(object):
 		self.gen = cmdgen.CommandGenerator()
 
 	def print_config(self):
-		print("""graph_title pfCounter
+		print("""host_name {hostname}
+graph_title pfCounter
 graph_vlabel #
 graph_args --base 1000
 graph_category network
@@ -92,7 +94,7 @@ pfCounterMemDrop.info Number of packets dropped due to memory limitations.
 pfCounterMemDrop.label pfCounterMemDrop
 pfCounterMemDrop.type GAUGE
 pfCounterMemDrop.min 0
-""")
+""".format(hostname=self.hostname))
 
 	def execute(self):
 
@@ -122,6 +124,16 @@ debug = bool(os.getenv('MUNIN_DEBUG', os.getenv('DEBUG', 0)))
 
 if debug:
 	logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(message)s')
+
+try:
+	match = re.search("^snmp_([^_]+)_pfcounter$", sys.argv[0], re.IGNORECASE)
+	host = match.group(1)
+	match = re.search("^([^:]+):(\d+)$", host)
+	if match is not None:
+		host = match.group(1)
+		port = match.group(2)
+except Exception as ex:
+	logging.exception("Caught exception: %s" % ex)
 
 if "snmpconf" in sys.argv[1:]:
 	print("require 1.3.6.1.4.1.12325.1.200.1.2.1.0")
