@@ -72,27 +72,27 @@ graph_category network
 graph_info pfCounter
 pfCounterMatch.info Number of packets that matched a filter rule.
 pfCounterMatch.label pfCounterMatch
-pfCounterMatch.type GAUGE
+pfCounterMatch.type COUNTER
 pfCounterMatch.min 0
 pfCounterBadOffset.info Number of packets with bad offset.
 pfCounterBadOffset.label pfCounterBadOffset
-pfCounterBadOffset.type GAUGE
+pfCounterBadOffset.type COUNTER
 pfCounterBadOffset.min 0
 pfCounterFragment.info Number of fragmented packets.
 pfCounterFragment.label pfCounterFragment
-pfCounterFragment.type GAUGE
+pfCounterFragment.type COUNTER
 pfCounterFragment.min 0
 pfCounterShort.info Number of short packets.
 pfCounterShort.label pfCounterShort
-pfCounterShort.type GAUGE
+pfCounterShort.type COUNTER
 pfCounterShort.min 0
 pfCounterNormalize.info Number of normalized packets.
 pfCounterNormalize.label pfCounterNormalize
-pfCounterNormalize.type GAUGE
+pfCounterNormalize.type COUNTER
 pfCounterNormalize.min 0
 pfCounterMemDrop.info Number of packets dropped due to memory limitations.
 pfCounterMemDrop.label pfCounterMemDrop
-pfCounterMemDrop.type GAUGE
+pfCounterMemDrop.type COUNTER
 pfCounterMemDrop.min 0
 """.format(hostname=self.hostname))
 
@@ -126,7 +126,7 @@ if debug:
 	logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-7s %(message)s')
 
 try:
-	match = re.search("^snmp_([^_]+)_pfcounter$", sys.argv[0], re.IGNORECASE)
+	match = re.search("^snmp_([^_]+)_pfcounter$", os.path.basename(sys.argv[0]), re.IGNORECASE)
 	host = match.group(1)
 	match = re.search("^([^:]+):(\d+)$", host)
 	if match is not None:
