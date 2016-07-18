@@ -17,7 +17,8 @@ sql = """  select pattern, num_infected, num_clean, num_infected * 100 / (num_in
 def config(dbfile):
 	print("""graph_title AmavisVT patterns
 graph_category antivirus
-graph_args -l 0 --upper-limit 100""")
+graph_args -l 0 --upper-limit 100
+graph_vlabel Percent of infected mails""")
 
 	conn = None
 
